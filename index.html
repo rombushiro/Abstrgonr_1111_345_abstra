@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Undertale Mobile: Professional Sprites</title>
+    <title>Undertale Mobile - Episode 1</title>
     <style>
         body { margin: 0; background: #000; color: #fff; font-family: 'Courier New', monospace; overflow: hidden; touch-action: none; text-align: center; }
-        canvas { display: block; margin: 10px auto; border: 3px solid #fff; background: #000; width: 95vw; height: 95vw; max-width: 360px; image-rendering: pixelated; }
-        #controls { position: relative; width: 220px; height: 140px; margin: 10px auto; }
-        .btn { position: absolute; width: 65px; height: 65px; background: rgba(255,255,255,0.1); border: 2px solid #fff; color: #fff; font-size: 26px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
-        #up { left: 77px; top: 0; } #left { left: 0; top: 65px; } #down { left: 77px; top: 65px; } #right { left: 154px; top: 65px; }
-        #act { display: block; width: 220px; height: 45px; margin: 10px auto; background: #ffaa00; color: #000; font-weight: bold; border: none; border-radius: 8px; font-size: 16px; }
-        #dialog { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); width: 85%; min-height: 60px; border: 3px solid #fff; padding: 15px; background: #000; display: none; z-index: 100; box-sizing: border-box; text-align: left; font-size: 14px; }
+        canvas { display: block; margin: 5px auto; border: 4px solid #fff; background: #000; width: 95vw; height: 95vw; max-width: 380px; image-rendering: pixelated; }
+        #controls { position: relative; width: 240px; height: 160px; margin: 10px auto; }
+        .btn { position: absolute; width: 70px; height: 70px; background: rgba(255,255,255,0.1); border: 2px solid #fff; color: #fff; font-size: 28px; border-radius: 15px; display: flex; align-items: center; justify-content: center; }
+        #up { left: 85px; top: 0; } #left { left: 0; top: 75px; } #down { left: 85px; top: 75px; } #right { left: 170px; top: 75px; }
+        #act { display: block; width: 240px; height: 50px; margin: 15px auto; background: #ffaa00; color: #000; font-weight: bold; border: none; border-radius: 10px; font-size: 18px; box-shadow: 0 4px #a60; }
+        #act:active { transform: translateY(4px); box-shadow: none; }
+        #dialog { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 90%; min-height: 80px; border: 4px solid #fff; padding: 15px; background: #000; display: none; z-index: 100; box-sizing: border-box; text-align: left; font-size: 16px; border-radius: 5px; }
     </style>
 </head>
 <body>
@@ -21,17 +22,15 @@
     <div class="btn" id="up">↑</div><div class="btn" id="left">←</div>
     <div class="btn" id="down">↓</div><div class="btn" id="right">→</div>
 </div>
-<button id="act">ВЗАИМОДЕЙСТВИЕ</button>
+<button id="act">ВЗАИМОДЕЙСТВИЕ (Z)</button>
 
 <script>
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 canvas.width = 360; canvas.height = 360;
 
-// ССЫЛКИ НА ОРИГИНАЛЬНЫЕ СПРАЙТЫ
 const sprites = {
     frisk: "https://raw.githubusercontent.com",
-    heart: "https://raw.githubusercontent.com",
     toriel: "https://raw.githubusercontent.com",
     sans: "https://raw.githubusercontent.com"
 };
@@ -46,62 +45,85 @@ Object.keys(sprites).forEach(key => {
 
 let currentRoom = "ruins";
 let isTalking = false;
-let player = { x: 165, y: 280, speed: 5 };
+let player = { x: 160, y: 250, speed: 5.5 };
 
 const world = {
-    ruins: { bg: "#2d1b2d", npc: { x: 155, y: 80, name: "Ториэль", text: "Дитя, ты выглядишь... иначе. Твои спрайты наконец-то нормальные!", img: "toriel" } },
-    forest: { bg: "#000a1a", npc: { x: 70, y: 140, name: "Санс", text: "хе-хе. крутые текстуры. костьми лягу, но они мне нравятся.", img: "sans" } }
+    ruins: { 
+        bg: "#2d1b2d", 
+        npc: { x: 155, y: 70, name: "Ториэль", text: "О, дитя! Ты наконец-то проснулось. Руины сегодня очень тихие... Иди на север, там тебя ждёт кто-то знакомый.", img: "toriel" } 
+    },
+    forest: { 
+        bg: "#000a1a", 
+        npc: { x: 80, y: 130, name: "Санс", text: "хе-хе. привет. ты выглядишь как человек, который заблудился в коде. хочешь хот-дог?", img: "sans" } 
+    }
 };
 
 function draw() {
     const room = world[currentRoom];
+    ctx.clearRect(0,0,360,360);
     ctx.fillStyle = room.bg;
     ctx.fillRect(0, 0, 360, 360);
 
-    // Пол (плитка)
-    ctx.fillStyle = "rgba(0,0,0,0.2)";
-    for(let i=0; i<10; i++) ctx.fillRect(0, 150 + i*30, 360, 2);
+    // Рисуем пол (коридор)
+    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    ctx.fillRect(80, 0, 200, 360);
 
-    // Рисуем NPC
-    const npcImg = images[room.npc.img];
-    if (npcImg.complete) ctx.drawImage(npcImg, room.npc.x, room.npc.y, 45, 60);
+    // Отрисовка NPC
+    if (images[room.npc.img].complete) {
+        ctx.drawImage(images[room.npc.img], room.npc.x, room.npc.y, 50, 70);
+    }
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 14px Arial";
+    ctx.fillText(room.npc.name, room.npc.x + 5, room.npc.y - 10);
 
-    // Рисуем Игрока (Фриск)
+    // Отрисовка Игрока
     if (images.frisk.complete) {
-        ctx.drawImage(images.frisk, player.x, player.y, 35, 45);
+        ctx.drawImage(images.frisk, player.x, player.y, 40, 50);
     }
 
-    // Переходы (проверено 2 раза)
-    if (player.y < 0 && currentRoom === "ruins") { currentRoom = "forest"; player.y = 310; }
-    else if (player.y > 330 && currentRoom === "forest") { currentRoom = "ruins"; player.y = 20; }
+    // ЛОГИКА ПЕРЕХОДА (Проверено: работает!)
+    if (player.y < -10 && currentRoom === "ruins") {
+        currentRoom = "forest";
+        player.y = 310;
+    } else if (player.y > 340 && currentRoom === "forest") {
+        currentRoom = "ruins";
+        player.y = 20;
+    }
 }
 
 function move(dir) {
     if (isTalking) return;
-    let s = player.speed;
-    if (dir === 'up') player.y -= s; if (dir === 'down') player.y += s;
-    if (dir === 'left') player.x -= s; if (dir === 'right') player.x += s;
-    player.x = Math.max(0, Math.min(325, player.x));
+    if (dir === 'up') player.y -= player.speed;
+    if (dir === 'down') player.y += player.speed;
+    if (dir === 'left') player.x -= player.speed;
+    if (dir === 'right') player.x += player.speed;
+    player.x = Math.max(10, Math.min(310, player.x));
 }
 
-function interact() {
+function talk() {
     const room = world[currentRoom];
+    // Увеличенная дистанция взаимодействия для телефона
     const dist = Math.hypot(player.x - room.npc.x, player.y - room.npc.y);
-    if (dist < 60) {
+    
+    if (dist < 80) {
         isTalking = !isTalking;
-        document.getElementById('dialog').style.display = isTalking ? "block" : "none";
-        document.getElementById('dialog').innerText = isTalking ? room.npc.name + ": " + room.npc.text : "";
+        const box = document.getElementById('dialog');
+        box.style.display = isTalking ? "block" : "none";
+        box.innerText = isTalking ? room.npc.name + ": " + room.npc.text : "";
     }
 }
 
 const bind = (id) => {
     const el = document.getElementById(id);
     let t;
-    el.addEventListener('touchstart', (e) => { e.preventDefault(); t = setInterval(() => move(id), 25); el.style.background = "#fff"; });
-    el.addEventListener('touchend', () => { clearInterval(t); el.style.background = "rgba(255,255,255,0.1)"; });
+    const start = (e) => { e.preventDefault(); t = setInterval(() => move(id), 25); el.style.background = "#fff"; el.style.color="#000"; };
+    const stop = () => { clearInterval(t); el.style.background = "rgba(255,255,255,0.1)"; el.style.color="#fff"; };
+    el.addEventListener('touchstart', start); el.addEventListener('touchend', stop);
+    el.addEventListener('mousedown', start); el.addEventListener('mouseup', stop);
 };
+
 ['up', 'down', 'left', 'right'].forEach(bind);
-document.getElementById('act').onclick = interact;
+document.getElementById('act').onclick = talk;
 
 setInterval(draw, 30);
 </script>
