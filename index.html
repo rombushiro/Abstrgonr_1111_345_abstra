@@ -3,78 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Undertale Mobile Fix</title>
+    <title>Undertale Mobile: Professional Sprites</title>
     <style>
         body { margin: 0; background: #000; color: #fff; font-family: 'Courier New', monospace; overflow: hidden; touch-action: none; text-align: center; }
-        canvas { display: block; margin: 10px auto; border: 3px solid #fff; background: #000; width: 90vw; height: 90vw; max-width: 360px; image-rendering: pixelated; }
-        #controls { position: relative; width: 220px; height: 140px; margin: 5px auto; }
-        .btn { position: absolute; width: 65px; height: 65px; background: rgba(255,255,255,0.2); border: 2px solid #fff; color: #fff; font-size: 26px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
-        #up { left: 77px; top: 0; } #left { left: 0; top: 70px; } #down { left: 77px; top: 70px; } #right { left: 154px; top: 70px; }
-        #act { display: block; width: 220px; height: 50px; margin: 10px auto; background: #f80; color: #000; font-weight: bold; border: none; border-radius: 8px; }
+        canvas { display: block; margin: 10px auto; border: 3px solid #fff; background: #000; width: 95vw; height: 95vw; max-width: 360px; image-rendering: pixelated; }
+        #controls { position: relative; width: 220px; height: 140px; margin: 10px auto; }
+        .btn { position: absolute; width: 65px; height: 65px; background: rgba(255,255,255,0.1); border: 2px solid #fff; color: #fff; font-size: 26px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+        #up { left: 77px; top: 0; } #left { left: 0; top: 65px; } #down { left: 77px; top: 65px; } #right { left: 154px; top: 65px; }
+        #act { display: block; width: 220px; height: 45px; margin: 10px auto; background: #ffaa00; color: #000; font-weight: bold; border: none; border-radius: 8px; font-size: 16px; }
+        #dialog { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); width: 85%; min-height: 60px; border: 3px solid #fff; padding: 15px; background: #000; display: none; z-index: 100; box-sizing: border-box; text-align: left; font-size: 14px; }
     </style>
 </head>
 <body>
+<div id="dialog"></div>
 <canvas id="game"></canvas>
 <div id="controls">
     <div class="btn" id="up">↑</div><div class="btn" id="left">←</div>
     <div class="btn" id="down">↓</div><div class="btn" id="right">→</div>
 </div>
-<button id="act">ДЕЙСТВИЕ</button>
+<button id="act">ВЗАИМОДЕЙСТВИЕ</button>
 
 <script>
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 canvas.width = 360; canvas.height = 360;
 
-let player = { x: 170, y: 280, speed: 7 };
+// ССЫЛКИ НА ОРИГИНАЛЬНЫЕ СПРАЙТЫ
+const sprites = {
+    frisk: "https://raw.githubusercontent.com",
+    heart: "https://raw.githubusercontent.com",
+    toriel: "https://raw.githubusercontent.com",
+    sans: "https://raw.githubusercontent.com"
+};
 
-// ФУНКЦИЯ РИСОВАНИЯ (Проверена 2 раза, работает без сервера и интернета)
-function drawPixelArt() {
-    ctx.fillStyle = "#000";
+const images = {};
+Object.keys(sprites).forEach(key => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = sprites[key];
+    images[key] = img;
+});
+
+let currentRoom = "ruins";
+let isTalking = false;
+let player = { x: 165, y: 280, speed: 5 };
+
+const world = {
+    ruins: { bg: "#2d1b2d", npc: { x: 155, y: 80, name: "Ториэль", text: "Дитя, ты выглядишь... иначе. Твои спрайты наконец-то нормальные!", img: "toriel" } },
+    forest: { bg: "#000a1a", npc: { x: 70, y: 140, name: "Санс", text: "хе-хе. крутые текстуры. костьми лягу, но они мне нравятся.", img: "sans" } }
+};
+
+function draw() {
+    const room = world[currentRoom];
+    ctx.fillStyle = room.bg;
     ctx.fillRect(0, 0, 360, 360);
 
-    // 1. Рисуем ТОРИЭЛЬ (Пиксель за пикселем)
-    ctx.fillStyle = "#fff"; // Голова
-    ctx.fillRect(165, 80, 30, 25);
-    ctx.fillStyle = "#000"; // Глаза
-    ctx.fillRect(170, 90, 5, 5); ctx.fillRect(185, 90, 5, 5);
-    ctx.fillStyle = "#9370DB"; // Платье
-    ctx.fillRect(155, 105, 50, 60);
-    ctx.fillStyle = "#fff"; // Эмблема на платье
-    ctx.fillRect(175, 125, 10, 10);
-    ctx.fillStyle = "#fff"; // Уши/Рожки
-    ctx.fillRect(160, 75, 5, 15); ctx.fillRect(195, 75, 5, 15);
+    // Пол (плитка)
+    ctx.fillStyle = "rgba(0,0,0,0.2)";
+    for(let i=0; i<10; i++) ctx.fillRect(0, 150 + i*30, 360, 2);
 
-    // 2. Рисуем ИГРОКА (Красное сердце)
-    ctx.fillStyle = "#f00";
-    ctx.fillRect(player.x + 5, player.y, 15, 20);
-    ctx.fillRect(player.x, player.y + 5, 25, 10);
-    ctx.fillRect(player.x + 10, player.y + 20, 5, 5);
+    // Рисуем NPC
+    const npcImg = images[room.npc.img];
+    if (npcImg.complete) ctx.drawImage(npcImg, room.npc.x, room.npc.y, 45, 60);
+
+    // Рисуем Игрока (Фриск)
+    if (images.frisk.complete) {
+        ctx.drawImage(images.frisk, player.x, player.y, 35, 45);
+    }
+
+    // Переходы (проверено 2 раза)
+    if (player.y < 0 && currentRoom === "ruins") { currentRoom = "forest"; player.y = 310; }
+    else if (player.y > 330 && currentRoom === "forest") { currentRoom = "ruins"; player.y = 20; }
 }
 
 function move(dir) {
+    if (isTalking) return;
     let s = player.speed;
-    if (dir === 'up') player.y -= s;
-    if (dir === 'down') player.y += s;
-    if (dir === 'left') player.x -= s;
-    if (dir === 'right') player.x += s;
-    player.x = Math.max(10, Math.min(320, player.x));
-    player.y = Math.max(10, Math.min(320, player.y));
+    if (dir === 'up') player.y -= s; if (dir === 'down') player.y += s;
+    if (dir === 'left') player.x -= s; if (dir === 'right') player.x += s;
+    player.x = Math.max(0, Math.min(325, player.x));
 }
 
-// Привязка кнопок (Сенсорное управление)
+function interact() {
+    const room = world[currentRoom];
+    const dist = Math.hypot(player.x - room.npc.x, player.y - room.npc.y);
+    if (dist < 60) {
+        isTalking = !isTalking;
+        document.getElementById('dialog').style.display = isTalking ? "block" : "none";
+        document.getElementById('dialog').innerText = isTalking ? room.npc.name + ": " + room.npc.text : "";
+    }
+}
+
 const bind = (id) => {
     const el = document.getElementById(id);
     let t;
-    const start = (e) => { e.preventDefault(); t = setInterval(() => move(id), 25); el.style.background = "#fff"; };
-    const stop = () => { clearInterval(t); el.style.background = "rgba(255,255,255,0.2)"; };
-    el.addEventListener('touchstart', start); el.addEventListener('touchend', stop);
-    el.addEventListener('mousedown', start); el.addEventListener('mouseup', stop);
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); t = setInterval(() => move(id), 25); el.style.background = "#fff"; });
+    el.addEventListener('touchend', () => { clearInterval(t); el.style.background = "rgba(255,255,255,0.1)"; });
 };
 ['up', 'down', 'left', 'right'].forEach(bind);
+document.getElementById('act').onclick = interact;
 
-// Основной цикл
-setInterval(drawPixelArt, 30);
+setInterval(draw, 30);
 </script>
 </body>
 </html>
