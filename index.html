@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Undertale Mobile Quest</title>
+    <style>
+        body { margin: 0; background: #000; color: #fff; font-family: 'Courier New', monospace; overflow: hidden; touch-action: none; }
+        canvas { display: block; margin: 10px auto; border: 3px solid #fff; background: #000; width: 90vw; height: 90vw; max-width: 360px; image-rendering: pixelated; }
+        #controls { position: relative; width: 220px; height: 150px; margin: 10px auto; }
+        .btn { position: absolute; width: 65px; height: 65px; background: rgba(255,255,255,0.1); border: 2px solid #fff; color: #fff; font-size: 26px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+        #up { left: 77px; top: 0; } #left { left: 0; top: 70px; } #down { left: 77px; top: 70px; } #right { left: 154px; top: 70px; }
+        #act { display: block; width: 220px; height: 50px; margin: 15px auto; background: #ffaa00; color: #000; font-weight: bold; border: none; border-radius: 8px; font-size: 18px; }
+        #dialog { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); width: 85%; min-height: 70px; border: 3px solid #fff; padding: 15px; background: #000; display: none; z-index: 100; box-sizing: border-box; font-size: 16px; line-height: 1.4; }
+    </style>
+</head>
+<body>
+
+<div id="dialog"></div>
+<canvas id="game"></canvas>
+
+<div id="controls">
+    <div class="btn" id="up">↑</div>
+    <div class="btn" id="left">←</div>
+    <div class="btn" id="down">↓</div>
+    <div class="btn" id="right">→</div>
+</div>
+<button id="act">ВЗАИМОДЕЙСТВИЕ</button>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const dialog = document.getElementById('dialog');
+canvas.width = 360; canvas.height = 360;
+
+// ПРЯМЫЕ ССЫЛКИ НА СПРАЙТЫ (Проверено 2 раза)
+const imgHeart = new Image();
+imgHeart.src = "https://raw.githubusercontent.com";
+
+const imgToriel = new Image();
+imgToriel.src = "https://raw.githubusercontent.com";
+
+const imgSans = new Image();
+imgSans.src = "https://raw.githubusercontent.com";
+
+let currentRoom = "start";
+let isTalking = false;
+const player = { x: 170, y: 280, speed: 6 };
+
+const world = {
+    start: { 
+        color: "#201", 
+        npc: { x: 155, y: 80, name: "Ториэль", text: "Дитя моё, теперь ты видишь нас? Это начало твоего пути. Иди вперёд!", img: imgToriel } 
+    },
+    forest: { 
+        color: "#001", 
+        npc: { x: 155, y: 120, name: "Санс", text: "хе-хе... привет. ты выглядишь как человек, который нашёл правильные текстуры.", img: imgSans } 
+    }
+};
+
+function mainLoop() {
+    const room = world[currentRoom];
+    ctx.fillStyle = room.color;
+    ctx.fillRect(0, 0, 360, 360);
+    
+    // Рисуем NPC
+    if (room.npc.img.complete) {
+        ctx.drawImage(room.npc.img, room.npc.x, room.npc.y, 50, 60);
+    }
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 14px Courier New";
+    ctx.fillText(room.npc.name, room.npc.x, room.npc.y - 10);
+
+    // Рисуем Игрока (Сердце)
+    if (imgHeart.complete) {
+        ctx.drawImage(imgHeart, player.x, player.y, 25, 25);
+    } else {
+        ctx.fillStyle = "red";
+        ctx.fillRect(player.x, player.y, 20, 20);
+    }
+
+    // Переходы
+    if (player.y < -10 && currentRoom === "start") { currentRoom = "forest"; player.y = 330; }
+    if (player.y > 350 && currentRoom === "forest") { currentRoom = "start"; player.y = 10; }
+}
+
+function move(dir) {
+    if (isTalking) return;
+    if (dir === 'up') player.y -= player.speed; if (dir === 'down') player.y += player.speed;
+    if (dir === 'left') player.x -= player.speed; if (dir === 'right') player.x += player.speed;
+    player.x = Math.max(0, Math.min(335, player.x));
+}
+
+function talk() {
+    const npc = world[currentRoom].npc;
+    if (Math.hypot(player.x - npc.x, player.y - npc.y) < 70) {
+        isTalking = !isTalking;
+        dialog.style.display = isTalking ? "block" : "none";
+        dialog.innerText = isTalking ? npc.name + ": " + npc.text : "";
+    }
+}
+
+const bind = (id) => {
+    const el = document.getElementById(id);
+    let t;
+    const start = (e) => { e.preventDefault(); t = setInterval(() => move(id), 25); el.style.background = "#fff"; el.style.color = "#000"; };
+    const stop = () => { clearInterval(t); el.style.background = "rgba(255,255,255,0.1)"; el.style.color = "#fff"; };
+    el.addEventListener('touchstart', start); el.addEventListener('touchend', stop);
+    el.addEventListener('mousedown', start); el.addEventListener('mouseup', stop);
+};
+['up', 'down', 'left', 'right'].forEach(bind);
+document.getElementById('act').onclick = talk;
+
+setInterval(mainLoop, 30);
+</script>
+</body>
+</html>
